@@ -1,0 +1,294 @@
+%% === SLIDE_02 ===
+erDiagram
+    direction LR
+    products {
+        STRING sku PK
+        STRING product_name
+        STRING category
+    }
+    product_reviews {
+        STRING review_id PK
+        STRING sku FK
+        STRING batch_id FK
+        INT64 rating
+        STRING review_text
+    }
+    review_insights {
+        STRING review_id PK,FK
+        STRING sentiment
+        BOOL is_defect_report
+        STRING defect_category
+        STRING affected_component
+        INT64 severity
+        STRING ai_status
+    }
+    production_batches {
+        STRING batch_id PK
+        STRING sku FK
+        STRING production_line
+    }
+    batch_components {
+        STRING batch_id PK,FK
+        STRING lot_id PK,FK
+    }
+    component_lots {
+        STRING lot_id PK
+        STRING component_type
+        STRING supplier
+        STRING installed_by_machine_id FK
+    }
+    machines {
+        STRING machine_id PK
+        STRING production_line
+        DATE last_maintenance_date
+    }
+    products ||--o{ product_reviews : "1:N sku"
+    products ||--o{ production_batches : "1:N sku"
+    production_batches ||--o{ product_reviews : "1:N batch_id"
+    production_batches ||--o{ batch_components : "1:N batch_id"
+    component_lots ||--o{ batch_components : "1:N lot_id"
+    machines ||--o{ component_lots : "1:N machine_id"
+    product_reviews ||--|| review_insights : "1:1 review_id"
+    component_lots ||--o{ review_insights : "1:N component_type"
+
+%% === SLIDE_04 ===
+erDiagram
+    direction LR
+    product_reviews {
+        STRING review_id PK "Chiave recensione"
+        STRING sku FK "Codice prodotto"
+        STRING batch_id FK "Lotto produzione"
+        INT64 rating "1..5 stelle"
+        STRING review_text "Testo recensione"
+    }
+    risultato_triage_select {
+        STRING review_id PK "Riga di output"
+        BOOL is_defect "AI.IF()"
+        STRING category "AI.CLASSIFY()"
+        INT64 urgency_1_to_5 "AI.GENERATE_INT()"
+    }
+    product_reviews ||--|| risultato_triage_select : "SELECT"
+
+%% === SLIDE_08 ===
+erDiagram
+    direction LR
+    product_reviews {
+        STRING review_id PK "60 recensioni"
+        STRING sku FK "KTL-100..."
+        STRING batch_id FK "B-2025-01/02/05"
+        INT64 rating "WHERE rating <= 2"
+        STRING review_text "Fumo / plastica fusa"
+    }
+    coda_top_15_sicurezza {
+        STRING review_id PK "Top 15 critiche"
+        FLOAT64 safety_hazard_score "AI.SCORE() 0..100"
+        STRING batch_id FK "Lotti B-2025-01/02/05"
+    }
+    product_reviews ||--o{ coda_top_15_sicurezza : "SELECT"
+
+%% === SLIDE_12 ===
+erDiagram
+    direction LR
+    products {
+        STRING sku PK "Catalogo SKU"
+        STRING product_name "Nome prodotto"
+        STRING category "Categoria"
+    }
+    product_reviews {
+        STRING review_id PK "Tabella sorgente"
+        STRING sku FK "Join su products"
+        INT64 rating "1..5 stelle"
+        STRING review_text "Input testo libero"
+    }
+    review_insights {
+        STRING review_id PK,FK "Tabella materializzata"
+        STRING sentiment "STRUCT.sentiment"
+        BOOL is_defect_report "STRUCT.is_defect_report"
+        STRING defect_category "STRUCT.defect_category"
+        STRING affected_component "STRUCT.affected_component"
+        INT64 severity "STRUCT.severity (0..5)"
+        STRING summary "STRUCT.summary"
+        STRING ai_status "ai.status (controllo 429)"
+    }
+    products ||--o{ product_reviews : "1:N sku"
+    product_reviews ||--o| review_insights : "1:1 review_id"
+
+%% === SLIDE_16 ===
+erDiagram
+    direction LR
+    review_insights {
+        STRING review_id PK,FK "Insight AI"
+        BOOL is_defect_report "TRUE"
+        STRING affected_component "heating_element"
+        INT64 severity "Gravita 0..5"
+    }
+    product_reviews {
+        STRING review_id PK "Recensione"
+        STRING batch_id FK "B-2025-01/02/05"
+        STRING sku FK "KTL-100"
+    }
+    batch_components {
+        STRING batch_id PK,FK "Chiave composta"
+        STRING lot_id PK,FK "5 lotti per batch"
+    }
+    component_lots {
+        STRING lot_id PK "HE-4471 (77% difetti)"
+        STRING component_type "heating_element"
+        STRING supplier "ThermoCore"
+        STRING installed_by_machine_id FK "CAL-02"
+    }
+    machines {
+        STRING machine_id PK "CAL-02 (Line-A)"
+        DATE last_maintenance_date "2025-01-17 (Scaduta!)"
+    }
+    product_reviews ||--|| review_insights : "1:1 review_id"
+    product_reviews }o--o{ batch_components : "N:M batch_id"
+    component_lots ||--o{ batch_components : "1:N lot_id"
+    machines ||--o{ component_lots : "1:N machine_id"
+    component_lots ||--o{ review_insights : "1:N component_type"
+
+%% === SLIDE_20 ===
+erDiagram
+    direction LR
+    v_component_lot_defect_rates {
+        STRING lot_id PK "Top 5 lotti (HE-4471)"
+        STRING component_type "heating_element"
+        STRING supplier "ThermoCore"
+        STRING installed_by_machine_id FK "CAL-02"
+        FLOAT64 implication_rate "0.77 (17/22)"
+    }
+    machines {
+        STRING machine_id PK "CAL-02"
+        DATE last_maintenance_date "2025-01-17"
+    }
+    cte_top_lots {
+        STRING finding_lines "STRING_AGG(5 righe)"
+    }
+    briefing_esecutivo {
+        STRING executive_briefing "AI.GENERATE().result"
+    }
+    machines ||--o{ v_component_lot_defect_rates : "1:N machine_id"
+    v_component_lot_defect_rates ||--|| cte_top_lots : "SELECT"
+    cte_top_lots ||--|| briefing_esecutivo : "SELECT"
+
+%% === SLIDE_24 ===
+erDiagram
+    direction LR
+    products {
+        STRING sku PK "Dimensione 1: sku"
+    }
+    production_batches {
+        STRING batch_id PK "Lotto produzione"
+        STRING sku FK "Prodotto"
+        STRING production_line "Dimensione 2: linea"
+    }
+    product_reviews {
+        STRING review_id PK "Recensione"
+        STRING sku FK "Prodotto"
+        STRING batch_id FK "Batch"
+    }
+    review_insights {
+        STRING review_id PK,FK "Insight AI"
+        BOOL is_defect_report "Flag difetto"
+        STRING affected_component "Componente AI"
+    }
+    batch_components {
+        STRING batch_id PK,FK "Chiave composta"
+        STRING lot_id PK,FK "Chiave composta"
+    }
+    component_lots {
+        STRING lot_id PK "Dim 6: lot_id"
+        STRING component_type "Dim 3: tipo"
+        STRING supplier "Dim 4: fornitore"
+        STRING installed_by_machine_id FK "Dim 5: macchina"
+    }
+    output_ai_key_drivers {
+        ARRAY key_driver "Fattori combinati"
+        FLOAT64 lift "16.0x (+1600%)"
+        FLOAT64 odds_ratio "60.5"
+        FLOAT64 impact_score "Ranking impatto"
+    }
+    products ||--o{ product_reviews : "1:N sku"
+    production_batches ||--o{ product_reviews : "1:N batch_id"
+    product_reviews ||--|| review_insights : "1:1 review_id"
+    production_batches ||--o{ batch_components : "1:N batch_id"
+    component_lots ||--o{ batch_components : "1:N lot_id"
+    component_lots ||--o{ output_ai_key_drivers : "SELECT"
+
+%% === SLIDE_28 ===
+erDiagram
+    direction LR
+    review_insights {
+        STRING review_id PK,FK "WHERE is_defect_report"
+        INT64 severity "AVG(severity)"
+        STRING affected_component "Componente"
+    }
+    product_reviews {
+        STRING review_id PK "Recensione"
+        STRING sku FK "GROUP BY sku"
+        STRING batch_id FK "Batch"
+        STRING review_text "Testi aggregati"
+    }
+    products {
+        STRING sku PK "6 gruppi prodotto"
+        STRING product_name "Nome prodotto"
+    }
+    sintesi_difetti_per_sku {
+        STRING sku PK "1 riga per SKU"
+        INT64 defect_review_count "COUNT(*)"
+        FLOAT64 avg_severity "ROUND(AVG(), 1)"
+        STRING product_defect_synthesis "AI.AGG()"
+    }
+    product_reviews ||--|| review_insights : "1:1 review_id"
+    products ||--o{ product_reviews : "1:N sku"
+    products ||--|| sintesi_difetti_per_sku : "SELECT"
+
+%% === SLIDE_32 ===
+erDiagram
+    direction LR
+    engineering_bulletins {
+        STRING bulletin_id PK "TSB-2025-04..."
+        STRING target_sku FK "KTL-100..."
+        STRING technical_description "Deriva termica 108C"
+    }
+    product_reviews {
+        STRING review_id PK "R-0001..."
+        STRING sku FK "KTL-100..."
+        INT64 rating "WHERE rating <= 2"
+        STRING review_text "Non si spegne mai"
+    }
+    risultato_correlazione {
+        STRING bulletin_id PK "7c: JOIN ON AI.IF"
+        INT64 matching_reviews "COUNT(review_id)"
+        FLOAT64 semantic_similarity "7d: AI.SIMILARITY"
+    }
+    engineering_bulletins ||--o{ product_reviews : "1:N sku"
+    product_reviews ||--o{ risultato_correlazione : "SELECT"
+
+%% === SLIDE_36 ===
+erDiagram
+    direction LR
+    product_reviews {
+        STRING review_id PK "Recensione"
+        DATE review_date "Data giornaliera"
+    }
+    review_insights {
+        STRING review_id PK,FK "Insight AI"
+        BOOL is_defect_report "COUNTIF(difetto)"
+        INT64 severity "AVG(severity)"
+    }
+    cte_daily_defects {
+        TIMESTAMP review_date PK "Serie giornaliera"
+        FLOAT64 defect_count "Target 1"
+        FLOAT64 avg_severity "Target 2"
+        FLOAT64 total_reviews "Covariata storica"
+    }
+    output_timesfm_2_5 {
+        TIMESTAMP review_date PK "Orizzonte 7 giorni"
+        BOOL is_anomaly "7e: DETECT_ANOMALIES"
+        FLOAT64 forecast_value "7f: AI.FORECAST"
+        FLOAT64 smape "7g: AI.EVALUATE"
+    }
+    product_reviews ||--|| review_insights : "1:1 review_id"
+    review_insights ||--o{ cte_daily_defects : "SELECT"
+    cte_daily_defects ||--o{ output_timesfm_2_5 : "SELECT"
